@@ -9,6 +9,7 @@ authors = ["Staninna"]
 
 [dependencies]
 rand = "0.8.5"
+rayon = "1.10.0"
 
 # Premature optimization is the root of all evil
 [profile.release]

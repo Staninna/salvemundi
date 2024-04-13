@@ -1,6 +1,8 @@
 use rand::Rng;
+use rayon::prelude::*;
+use std::sync::atomic::{AtomicI32, Ordering};
 
-const TARGET: &str = include_str!("main.rs");
+const TARGET: &str = "Hello, World! This is a genetic algorithm in Rust!";
 const POPULATION_SIZE: usize = 1000;
 const MUTATION_RATE: f64 = 0.01;
 const GENERATIONS: u32 = 1000000;
@@ -11,6 +13,7 @@ const SELECT_FROM_TOP_PERCENT: f64 = 0.1;
 struct Individual {
     genes: Vec<u8>,
     fitness: i32,
+    calculated: bool,
 }
 
 impl Individual {
@@ -19,16 +22,22 @@ impl Individual {
         Individual {
             genes: (0..TARGET.len()).map(|_| rng.gen::<u8>()).collect(),
             fitness: 0,
+            calculated: false,
         }
     }
 
     fn calculate_fitness(&mut self) -> i32 {
+        if self.calculated {
+            return self.fitness;
+        }
+
         self.fitness = self
             .genes
             .iter()
             .zip(TARGET.as_bytes())
             // Count the number of genes that match the target
             .fold(0, |acc, (&g, &t)| acc + if g == t { 1 } else { 0 });
+        self.calculated = true;
 
         self.fitness
     }
@@ -61,6 +70,7 @@ fn crossover(parent1: &Individual, parent2: &Individual) -> Individual {
     Individual {
         genes: child_genes,
         fitness: 0,
+        calculated: false,
     }
 }
 
@@ -68,6 +78,7 @@ fn mutate(individual: &mut Individual) {
     for gene in individual.genes.iter_mut() {
         if rand::thread_rng().gen::<f64>() < MUTATION_RATE {
             *gene = rand::thread_rng().gen::<u8>();
+            individual.calculated = false;
         }
     }
 }
@@ -82,36 +93,34 @@ fn main() {
         SELECT_FROM_TOP_PERCENT
     );
 
-    let mut population: Vec<Individual> = (0..POPULATION_SIZE).map(|_| Individual::new()).collect();
-    let mut max_fitness = 0;
+    let mut population: Vec<Individual> = (0..POPULATION_SIZE)
+        .into_par_iter()
+        .map(|_| Individual::new())
+        .collect();
+    let max_fitness = AtomicI32::new(0);
 
     for generation in 0.. {
         if !INFINITE_GENERATIONS && generation >= GENERATIONS {
             break;
         }
 
-        for individual in &mut population {
+        population.par_iter_mut().for_each(|individual| {
             let fitness = individual.calculate_fitness();
-            if fitness > max_fitness {
-                max_fitness = fitness;
-                println!(
-                    "\x1b[32mNew max fitness: {}\x1b[0m, Needed fitness: \x1b[33m{}\x1b[0m",
-                    max_fitness,
-                    TARGET.len()
-                );
-            }
+            max_fitness.fetch_max(fitness, Ordering::SeqCst);
             if fitness as usize == TARGET.len() {
                 println!(
                     "\x1b[35mSolution found in generation {}!\x1b[0m, Genes: \x1b[33m{}\x1b[0m",
                     generation,
                     individual.genes_as_string()
                 );
-                return;
+                std::process::exit(0);
             }
-        }
+        });
 
-        population.sort_by(|a, b| b.fitness.cmp(&a.fitness));
+        population.par_sort_by(|a, b| b.fitness.cmp(&a.fitness));
+
         let new_population: Vec<Individual> = (0..POPULATION_SIZE)
+            .into_par_iter()
             .map(|_| {
                 let parent1 = select(&population);
                 let parent2 = select(&population);

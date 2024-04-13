@@ -1,10 +1,11 @@
 use rand::Rng;
 
-const TARGET: &str = "Hello, World!";
+const TARGET: &str = include_str!("main.rs");
 const POPULATION_SIZE: usize = 1000;
-const MUTATION_RATE: f64 = 0.05;
+const MUTATION_RATE: f64 = 0.01;
 const GENERATIONS: u32 = 1000000;
-const SELECT_FROM_TOP_PERCENT: f64 = 0.5;
+const INFINITE_GENERATIONS: bool = true;
+const SELECT_FROM_TOP_PERCENT: f64 = 0.1;
 
 #[derive(Clone)]
 struct Individual {
@@ -26,6 +27,7 @@ impl Individual {
             .genes
             .iter()
             .zip(TARGET.as_bytes())
+            // Count the number of genes that match the target
             .fold(0, |acc, (&g, &t)| acc + if g == t { 1 } else { 0 });
 
         self.fitness
@@ -83,15 +85,19 @@ fn main() {
     let mut population: Vec<Individual> = (0..POPULATION_SIZE).map(|_| Individual::new()).collect();
     let mut max_fitness = 0;
 
-    for generation in 0..GENERATIONS {
+    for generation in 0.. {
+        if !INFINITE_GENERATIONS && generation >= GENERATIONS {
+            break;
+        }
+
         for individual in &mut population {
             let fitness = individual.calculate_fitness();
             if fitness > max_fitness {
                 max_fitness = fitness;
                 println!(
-                    "\x1b[32mNew max fitness: {}\x1b[0m, Genes: \x1b[33m{}\x1b[0m",
+                    "\x1b[32mNew max fitness: {}\x1b[0m, Needed fitness: \x1b[33m{}\x1b[0m",
                     max_fitness,
-                    individual.genes_as_string()
+                    TARGET.len()
                 );
             }
             if fitness as usize == TARGET.len() {

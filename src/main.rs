@@ -47,12 +47,7 @@ impl Individual {
 }
 
 fn select(population: &[Individual]) -> &Individual {
-    let top_idx = ((population.len() as f64) * (SELECT_FROM_TOP_PERCENT / 100.0)).ceil() as usize;
-    let top = &population[..top_idx.max(1)];
-
-    top.iter()
-        .max_by(|x, y| x.fitness.cmp(&y.fitness))
-        .expect("Non-empty population required")
+    &population[0]
 }
 
 fn crossover(parent1: &Individual, parent2: &Individual) -> Individual {

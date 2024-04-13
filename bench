@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Build the project
+cargo build --release
+cp target/release/hello_world .
+
+# Run the benchmark
+if [ ! -d "benches" ]; then mkdir benches; fi
+hyperfine --warmup 10 --runs 100 './hello_world' --export-markdown "benches/$(date +%s).md"
+
+# Clean up
+rm 'hello_world'

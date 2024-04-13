@@ -2,8 +2,16 @@
 name = "hello_world"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+authors = ["Staninna"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 rand = "0.8.5"
+
+# Premature optimization is the root of all evil
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

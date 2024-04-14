@@ -9,16 +9,16 @@ const INFINITE_GENERATIONS: bool = true;
 const SELECT_FROM_TOP_PERCENT: f64 = 0.1;
 
 #[derive(Clone)]
-struct Individual {
+struct Agent {
     genes: Vec<u8>,
     fitness: i32,
     calculated: bool,
 }
 
-impl Individual {
-    fn new() -> Individual {
+impl Agent {
+    fn new() -> Self {
         let mut rng = rand::thread_rng();
-        Individual {
+        Self {
             genes: (0..TARGET.len()).map(|_| rng.gen::<u8>()).collect(),
             fitness: 0,
             calculated: false,
@@ -46,11 +46,11 @@ impl Individual {
     }
 }
 
-fn select(population: &[Individual]) -> &Individual {
+fn select(population: &[Agent]) -> &Agent {
     &population[0]
 }
 
-fn crossover(parent1: &Individual, parent2: &Individual) -> Individual {
+fn crossover(parent1: &Agent, parent2: &Agent) -> Agent {
     let mut rng = rand::thread_rng();
     let crossover_point = rng.gen_range(0..TARGET.len());
     let child_genes: Vec<u8> = parent1
@@ -61,14 +61,14 @@ fn crossover(parent1: &Individual, parent2: &Individual) -> Individual {
         .copied()
         .collect();
 
-    Individual {
+    Agent {
         genes: child_genes,
         fitness: 0,
         calculated: false,
     }
 }
 
-fn mutate(individual: &mut Individual) {
+fn mutate(individual: &mut Agent) {
     for gene in individual.genes.iter_mut() {
         if rand::thread_rng().gen::<f64>() < MUTATION_RATE {
             *gene = rand::thread_rng().gen::<u8>();
@@ -87,9 +87,9 @@ fn main() {
         SELECT_FROM_TOP_PERCENT
     );
 
-    let mut population: Vec<Individual> = (0..POPULATION_SIZE)
+    let mut population: Vec<Agent> = (0..POPULATION_SIZE)
         .into_par_iter()
-        .map(|_| Individual::new())
+        .map(|_| Agent::new())
         .collect();
 
     for generation in 0.. {
@@ -111,7 +111,7 @@ fn main() {
 
         population.par_sort_by(|a, b| b.fitness.cmp(&a.fitness));
 
-        let new_population: Vec<Individual> = (0..POPULATION_SIZE)
+        let new_population: Vec<Agent> = (0..POPULATION_SIZE)
             .into_par_iter()
             .map(|_| {
                 let parent1 = select(&population);
